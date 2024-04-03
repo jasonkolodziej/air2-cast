@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {},
+	"recommendations": [
+        "golang.go"
+	],
+	"extensions": {
+		"recommendations": [
+			"aaron-bond.better-comments",
+			"ms-vscode.makefile-tools"
+		]
+	}
+}
