@@ -68,19 +68,19 @@ endif
 # find . -path ./vendor -prune -o -type f \( -name '*.go' -o -name '*.proto' \) -exec sed -i -e "s;github.com/johanbrandhorst/grpc-gateway-boilerplate;yourscmprovider.com/youruser/yourrepo;g" {} +
 # find . -path ./vendor -prune -o -type f \( -name '*.go' -o -name '*.proto' \) -exec sed -i -e "s;${GO_MOD_CUR_REPO_PATH};${NEW_REPO_PATH};g" {} +
 PASSWORD ?= $(shell bash -c 'read -p "Password: " pwd; echo $$pwd')
+NEW_REPO_PATH=
 adjust_template:
 # ifeq ($(SOME_REPO_PATH),'yourscmprovider.com/youruser/yourrepo')
 #	@read -p "What is your new/cloned/forked repository's path? (e.g. ${SOME_REPO_PATH}): " new_repo; \
 	NEW_REPO_PATH=$$new_repo;
 	NEW_REPO_PATH=$(USER_NEW_REPO)
 ifeq ($(strip $(NEW_REPO_PATH)),)
-	NEW_REPO_PATH=$(NEW_GIT_REPO_PATH)
+	NEW_REPO_PATH=$$NEW_GIT_REPO_PATH
 # else
 endif
 # endif
-	echo ${NEW_REPO_PATH}
 # find . -path ./vendor -prune -o -type f \( -name '*.go' -o -name '*.proto' -o -name 'go.mod' \) -exec sed -i -e "s;${GO_MOD_CUR_REPO_PATH};$$SOME_REPO_PATH;g" {} +
-# find . -path ./vendor -prune -o -type f \( -name '*.go' -o -name '*.proto' -o -name 'go.mod' \) -exec sed -i -e "s;${GO_MOD_CUR_REPO_PATH};${NEW_REPO_PATH};g" {} +
+	find . -path ./vendor -prune -o -type f \( -name '*.go' -o -name '*.proto' -o -name 'go.mod' \) -exec sed -i -e "s;${GO_MOD_CUR_REPO_PATH};${NEW_REPO_PATH};g" {} +
 
 # purge_old removes the excess files and should be used after adjust_template
 purge_old:
