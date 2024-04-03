@@ -2,7 +2,10 @@
 GENERATOR: 
   #? Specifies the package name for the generated code. 
   #? A directory with that name will be created in the -out prefix (. by default) provided for the c-for-go executable.
-  PackageName: shairport-sync
+  PackageName: shairportsync
+  # * mac:
+  #*   Build: autoconf ✘, automake ✘, pkg-config ✘
+  #*   Required: libao ✘, libconfig ✘, libdaemon ✘, libsoxr ✘, openssl@3 ✔, popt ✘, pulseaudio ✘
   #? Specifies the package description that will be written into doc.go and act as a short description in GoDoc.
   PackageDescription: "Package vorbis provides Go bindings for OggVorbis implementation by the Xiph.Org Foundation"
   #? Specify a license for the generated code. I prefer delegating all the rights to the robots.
@@ -14,14 +17,18 @@ GENERATOR:
   #? it does so by parsing *.pc files with github.com/xlab/pkgconfig/pkg. 
   #? Secondly, the generator will write a CGo header that the Go toolchain respects, 
   #? so at compiling and linking stages it will find all required include files and shared objects.
-  PkgConfigOpts: [ogg, vorbis, vorbisenc]
+  PkgConfigOpts: [popt, libconfig, soxr]
+
   #? The list of include files that generator must write in the resulting files so CGo will find all the symbols used.
   Includes: 
   #* #include "ogg/ogg.h"
   #* #include "vorbis/codec.h"
-    - "ogg/ogg.h"
-    - "vorbis/codec.h"
-    - "vorbis/vorbisenc.h"
+
+    # - "ogg/ogg.h"
+    # - "vorbis/codec.h"
+    # - "vorbis/vorbisenc.h"
+    - "rtp.h"
+    - "common.h"
 
   #? These files (apart of `Includes:`) are part of the distribution so the paths are relative. 
   #? Consider SysIncludes if you're expecting the system to have these headers. 
@@ -29,6 +36,7 @@ GENERATOR:
   # SysIncludes:
   #* #include <ogg/ogg.h>
   #* #include <vorbis/codec.h>
+
     # -
   #? This option allows to specify flag groups with build constraints for CGo, the group is represented as:
   #? https://github.com/xlab/c-for-go/wiki/Generator-config-section#flaggroups
@@ -36,19 +44,32 @@ GENERATOR:
   # FlagGroups:
     #* - {name: "CFLAGS", traits: ["linux"], flags: [-DMDB_USE_SYSV_SEM=1]}
     #* - {name: "LDFLAGS", traits: ["windows"], flags: [-lntdll]}
-
+    
+    # -
 #? Most of these options are going directly as configuration parameters for cznic/cc.
 PARSER: 
   #? Specifies a list of paths where to search all the referenced include files while parsing C header files. 
   #? This goes straight to cznic/cc and does not correlate nor with system environment nor the Go toolchain.
-  IncludePaths: [
-    "/usr/include",
-    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include",
-  ]
+  IncludePaths:
+    - "/usr/include"
+    - "shairportsync/internal"
+    - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
   #? Specifies a list of C header files to parse. 
   #? These are usually relative to the c-for-go working directory (.) or 
   #? absolute on the system of the developer who maintains the bindings.
-  SourcesPaths: ["vorbis/ogg/ogg.h", "vorbis/vorbis/codec.h", "vorbis/vorbis/vorbisenc.h"]
+  SourcesPaths: 
+    # - "vorbis/ogg/ogg.h"
+    # - "vorbis/vorbis/codec.h"
+    # - "vorbis/vorbis/vorbisenc.h"
+    - "shairportsync/internal/rtp.h"
+    - "shairportsync/internal/common.h"
+    - "shairportsync/internal/definitions.h"
+    - "shairportsync/internal/player.h"
+    - "shairportsync/internal/alac.h"
+    - "shairportsync/internal/loudness.h"
+    - "shairportsync/internal/dacp.h"
+    - "shairportsync/internal/activity_monitor.h"
+    - "shairportsync/internal/ptp-utilities.h"
   #? Override the target CPU architecture. Defaults to `x86_64` but supported bases are:
   # Arch:
   #*   i386, x86_48, x86_64, arm, aarch64
@@ -59,7 +80,7 @@ PARSER:
     #* VK_USE_PLATFORM_ANDROID_KHR: yes
     #* VK_NO_PROTOTYPES: 1
     #* __dafuq__: {}
-    # -
+    CONFIG_AIRPLAY_2: 1
 
 TRANSLATOR:
   #? These boolean flags have been added recently to explicitly turn off `const char *` (also `const unsigned char *`) as string in Go, 
@@ -93,13 +114,13 @@ TRANSLATOR:
         #? C name should match and an action to take when one does match. 
         #? Every name is checked against each expression until it's clear whether we should accept or ignore the name. 
         #? By default everything is ignored.
-      - {action: accept, from: "^vorbis_"}
-      - {action: accept, from: "^ogg_"}
-        #? Action: replace
-        #? Rules with action replace are forming the replace/transform pipeline. 
-        #? These rules are being applied in order of occurrence and are capable of substring transformation. 
-        #? Having from filled but to empty means making a cut out.
-      - {action: replace, from: "^vorbis_", to: _}
+      # - {action: accept, from: "^vorbis_"}
+      # - {action: accept, from: "^ogg_"}
+      #   #? Action: replace
+      #   #? Rules with action replace are forming the replace/transform pipeline. 
+      #   #? These rules are being applied in order of occurrence and are capable of substring transformation. 
+      #   #? Having from filled but to empty means making a cut out.
+      # - {action: replace, from: "^vorbis_", to: _}
         #? Transform:
         #? In order to keep rules as simple as possible, 
         #? there is a set of predefined transforms that are commonly used in name normalization.
@@ -112,9 +133,9 @@ TRANSLATOR:
         #? The from filter allows to narrow the scope of the target entities and to specifier defines a template. 
         #? Supported template variables: `path`, `file`, `line`, `name`, `goname`. 
         #? The latter two represent C entity name and Go entity name (after transforms). The default template is `$path:$line`.
-      - {action: doc, from: "^ogg_u?int[0-9]+_t"} # types like ogg_uint32_t
-      - {action: doc, from: "^ogg_", to: "https://xiph.org/ogg/doc/libogg/$name.html"}
-      - {action: doc, from: "^vorbis_", to: "https://xiph.org/vorbis/doc/libvorbis/$name.html"}
+      # - {action: doc, from: "^ogg_u?int[0-9]+_t"} # types like ogg_uint32_t
+      # - {action: doc, from: "^ogg_", to: "https://xiph.org/ogg/doc/libogg/$name.html"}
+      # - {action: doc, from: "^vorbis_", to: "https://xiph.org/vorbis/doc/libvorbis/$name.html"}
       - {action: replace, from: _$}
       - {load: snakecase}
     #? sets rules that being applied depending on the visibility of entity, 
@@ -143,17 +164,17 @@ TRANSLATOR:
   #? through in both directions. The `sref` option is a special one for multiple pointer cases in C, 
   #? when you are expected to provide a pointer to a pointer, etc.
   #? Ref: https://github.com/xlab/c-for-go/wiki/Translator-config-section#ptrtips
-  PtrTips:
-  #* Supported scopes: `function`, `struct`, `any`. A pointer tip can be targeted to `function` args, 
-  #* to `function` return value, to `struct` fields, to any name matching pattern.
-    function:
-        #? Where target is any supported regular expression. `Self` tip targets the function return value. 
-        #? Default tip for missing cases, however I advise to fill all tips, default ones mark as `0` or `size`. 
-        #? The latter does nothing because it's not a valid tip, but it helps to maintain these tips and avoiding human errors.
-      - {target: "vorbis_analysis_headerout$", tips: [sref,sref,sref,sref,sref]}
-      - {target: "vorbis_synthesis_pcmout$", tips: [ref,arr]}
-      - {target: ^vorbis_, tips: [ref,ref,ref]}
-      - {target: ^ogg_, self: arr, tips: [ref,ref]}
+  # PtrTips:
+  # #* Supported scopes: `function`, `struct`, `any`. A pointer tip can be targeted to `function` args, 
+  # #* to `function` return value, to `struct` fields, to any name matching pattern.
+  #   function:
+  #       #? Where target is any supported regular expression. `Self` tip targets the function return value. 
+  #       #? Default tip for missing cases, however I advise to fill all tips, default ones mark as `0` or `size`. 
+  #       #? The latter does nothing because it's not a valid tip, but it helps to maintain these tips and avoiding human errors.
+  #     - {target: "vorbis_analysis_headerout$", tips: [sref,sref,sref,sref,sref]}
+  #     - {target: "vorbis_synthesis_pcmout$", tips: [ref,arr]}
+  #     - {target: ^vorbis_, tips: [ref,ref,ref]}
+  #     - {target: ^ogg_, self: arr, tips: [ref,ref]}
   #? Specifies the translation tips that can help to distinguish between 
   #? `UODawgSpecial32` and `float32` plain type that might be the same in terms of memory 
   #? and only a developer may know that. Especially useful in cases when there are deeply nested `typedefs`, 

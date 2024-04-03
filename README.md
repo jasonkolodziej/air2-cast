@@ -6,3 +6,6 @@
 [![License](https://img.shields.io/badge/license-apache2-mildgreen.svg)](./LICENSE)
 [![GitHub release](https://img.shields.io/github/release/Shivam010/protoc-gen-redact.svg)](https://github.com/Shivam010/protoc-gen-redact/releases)
 Golang Template for Jason
+
+## `shairportsync/internal`
+This location is supposed to mock the git repo: [shairport-sync](https://github.com/mikebrady/shairport-sync)
